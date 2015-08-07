@@ -1,0 +1,2 @@
+[HeartBleed Scan]Scan 749 hosts, Find 0 heartbleed vul
+
