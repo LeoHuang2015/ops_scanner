@@ -193,7 +193,7 @@ def is_vulnerable(host, timeout, port=443):
     return hit_hb(s)
 
 
-def scan_host(*kw):
+def scan_host(kw):
     """ Scans a single host, logs into
 
     Returns:
@@ -201,12 +201,13 @@ def scan_host(*kw):
     """
     port = 443
     timeout = 5
-    if len(*kw) == 1:
-        host = kw[0][0]
-    elif len(*kw) == 2:
-        host, port = kw[0][0], int(kw[0][1])
-    elif len(*kw) == 3:
-        host, port, timeout = kw[0][0], int(kw[0][1]), kw[0][1]
+    if len(kw) == 1:
+        host = kw[0]
+        print "xxxxxxxxxx", host, port
+    elif len(kw) == 2:
+        host, port = kw[0], int(kw[1])
+    elif len(kw) == 3:
+        host, port, timeout = kw[0], int(kw[1]), kw[2]
     else:
         print "get para error"
 
@@ -225,15 +226,14 @@ def handle_result(host, port, result):
 
 
 def hb_file_check(check_file, result_file = None):
-    port = 443
-
     scan_list = []
-
     with open(check_file) as f:
         for line in f:
+            port = 443
             line = line.strip()
             if not line:
                 continue
+
             if ":" in line:
                 host, port = line.split(":")
             elif "\t" in line:
@@ -252,7 +252,7 @@ def hb_file_check(check_file, result_file = None):
 
     vul_results = []
     for x in scan_results:
-        print x
+        #print x
         if x[2]:
             vul_results.append(x)
 
@@ -263,6 +263,55 @@ def hb_file_check(check_file, result_file = None):
                 h, p, r = x
                 f.write("%s %s\n" %(h, p))
 
+def hb_blind_check(check_file, result_file = None):
+    '''scan default port'''
+    port_list = [25,
+                 465,
+                 110,
+                 995,
+                 143,
+                 993, 994,
+                80, 8080,
+                443, 8443,
+                1194,
+                5988,
+                5989,
+                5990,
+                6443,
+                6771,
+                6789,
+                5443]
+
+    scan_list = []
+
+    with open(check_file) as f:
+        for line in f:
+            host = line.strip()
+            if not host:
+                continue
+            for port in port_list:
+                scan_list.append([host, port])
+
+
+    task = threadpool.map(scan_host, scan_list)
+
+    threadpool.close()
+    threadpool.join()
+
+    vul_results = []
+    for x in scan_results:
+        #print x
+        if x[2]:
+            vul_results.append(x)
+
+    if result_file:
+        with open(result_file, 'w') as f:
+            f.write("[HeartBleed Scan]Scan %d hosts, Find %d heartbleed vul\n\n" % (len(scan_results), len(vul_results)))
+            for x in vul_results:
+                h, p, r = x
+                f.write("%s %s\n" %(h, p))
+
+
 if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -272,3 +321,5 @@ if __name__ == '__main__':
     result_file = "hb.txt"
     hb_file_check(input_file, result_file)
 
+    input_file = "../test/only_host.txt"
+    #hb_blind_check(input_file, result_file)
